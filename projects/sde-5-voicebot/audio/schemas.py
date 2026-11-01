@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass
 import math
 
@@ -12,9 +11,9 @@ class AudioFormat:
     """
     Describes the format of audio data.
 
-    sample_rate: Number of samples per second (Hz).
-    channels: Number of audio channels (1 = mono, 2 = stereo).
-    sample_width: Bytes used for each audio sample.
+    sample_rate: Number of samples per second in Hz (Constraint: positive integer).
+    channels: Number of audio channels, 1 = mono, 2 = stereo (Constraint: positive integer).
+    sample_width: Bytes used for each audio sample (Constraint: positive integer, default: 2).
     """
 
     sample_rate: int
@@ -40,16 +39,21 @@ class AudioFormat:
         if self.sample_width <= 0:
             raise AudioError("Sample width must be greater than zero.")
 
+    @property
+    def frame_size(self) -> int:
+        """Size of one audio frame in bytes (channels * sample_width)."""
+        return self.channels * self.sample_width
+
 
 @dataclass(frozen=True)
 class AudioChunk:
     """
     Represents one chunk of audio.
 
-    data: Raw audio bytes.
-    timestamp: Time when the chunk was captured (seconds).
-    sequence_id: Increasing identifier for each chunk.
-    audio_format: Format of the audio data.
+    data: Raw audio bytes (Constraint: non-empty bytes, length multiple of frame size).
+    timestamp: Time when the chunk was captured in seconds (Constraint: finite, non-negative number).
+    sequence_id: Monotonically increasing identifier for chunk (Constraint: non-negative integer).
+    audio_format: Format specifications of the audio data (Constraint: valid AudioFormat).
     """
 
     data: bytes
@@ -78,3 +82,9 @@ class AudioChunk:
 
         if not isinstance(self.audio_format, AudioFormat):
             raise AudioError("A valid AudioFormat is required.")
+
+        frame_size = self.audio_format.channels * self.audio_format.sample_width
+        if len(self.data) % frame_size != 0:
+            raise AudioError(
+                f"Audio chunk data length ({len(self.data)} bytes) must be a multiple of frame size ({frame_size} bytes)."
+            )

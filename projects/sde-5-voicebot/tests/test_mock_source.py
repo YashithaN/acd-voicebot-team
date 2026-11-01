@@ -1,4 +1,3 @@
-
 import unittest
 
 from audio.schemas import AudioFormat, AudioError
@@ -73,12 +72,55 @@ class TestMockAudioSource(unittest.TestCase):
                 self.audio_format
             )
 
+    def test_corrupt_unaligned_audio_data(self):
+        # 31 bytes is not divisible by 2-byte frame size -> unaligned/corrupt
+        corrupt_data = bytes(range(31))
+        with self.assertRaises(AudioError):
+            MockAudioSource(
+                corrupt_data,
+                self.audio_format,
+                chunk_size=8
+            )
+
     def test_invalid_chunk_size(self):
         with self.assertRaises(AudioError):
             MockAudioSource(
                 self.audio_data,
                 self.audio_format,
                 chunk_size=0
+            )
+
+    def test_corrupt_unaligned_chunk_size(self):
+        # Chunk size 3 is not aligned with 2-byte frame size
+        with self.assertRaises(AudioError):
+            MockAudioSource(
+                self.audio_data,
+                self.audio_format,
+                chunk_size=3
+            )
+
+    def test_invalid_start_timestamp(self):
+        with self.assertRaises(AudioError):
+            MockAudioSource(
+                self.audio_data,
+                self.audio_format,
+                chunk_size=8,
+                start_timestamp=-0.5
+            )
+        with self.assertRaises(AudioError):
+            MockAudioSource(
+                self.audio_data,
+                self.audio_format,
+                chunk_size=8,
+                start_timestamp="invalid"
+            )
+
+    def test_invalid_audio_format(self):
+        with self.assertRaises(AudioError):
+            MockAudioSource(
+                self.audio_data,
+                audio_format=None,
+                chunk_size=8
             )
 
 

@@ -1,4 +1,3 @@
-
 from audio.schemas import AudioChunk, AudioFormat, AudioError
 
 
@@ -28,10 +27,13 @@ class MockAudioSource:
 
         frame_size = audio_format.channels * audio_format.sample_width
 
+        if len(audio_data) % frame_size != 0:
+            raise AudioError("Audio data length must align with the audio frame size.")
+
         if chunk_size % frame_size != 0:
             raise AudioError("Chunk size must align with the audio frame size.")
 
-        if not isinstance(start_timestamp, (int, float)):
+        if not isinstance(start_timestamp, (int, float)) or isinstance(start_timestamp, bool):
             raise AudioError("Start timestamp must be a number.")
 
         if start_timestamp < 0:
