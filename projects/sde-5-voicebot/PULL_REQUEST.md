@@ -137,3 +137,91 @@ Audio stream completed successfully!
 - [ ] No duplicate schemas or cross-boundary mutations.
 - [ ] All 25 unit tests execute and pass locally.
 - [ ] Deterministic mock stream verified via CLI demo.
+
+---
+
+# Week 2 — Device Permissions, Lifecycle Controls, VAD & Bounded Buffer
+
+**Team:** SDE 5
+**Engineer:** Yashitha N
+**Workstream:** W1 – Audio and VAD
+**Duration:** Week 2 (Day 8 – Day 14)
+**Branch:** `feature/yashitha-w2-audio-lifecycle`
+
+## 1. Objective
+
+Extend the Week 1 audio foundation with device selection, permission handling, audio lifecycle controls, configurable mock VAD, and bounded audio buffering.
+
+## 2. Implementation
+
+- Added an audio device interface and deterministic mock device adapter.
+- Implemented microphone permission states: UNKNOWN, GRANTED, and DENIED.
+- Added device selection and permission validation.
+- Implemented audio lifecycle operations: start, pause, resume, and stop.
+- Added configurable MockVAD with threshold and minimum speech duration.
+- Implemented BoundedAudioBuffer with configurable capacity.
+- Added overflow handling and dropped-chunk, sequence-gap, and late-chunk counters.
+- Connected the lifecycle controller to the device adapter and bounded buffer.
+- Added a Week 2 integration demo using mock audio data.
+
+## 3. Files Added or Updated
+
+**New modules:**
+- `audio/device.py`
+- `audio/lifecycle.py`
+- `audio/vad.py`
+- `audio/buffer.py`
+- `week2_demo.py`
+
+**Tests:**
+- `tests/test_device.py`
+- `tests/test_lifecycle.py`
+- `tests/test_vad.py`
+- `tests/test_buffer.py`
+
+**Documentation:**
+- Updated `README.md`
+- Updated `PULL_REQUEST.md`
+
+## 4. Test Results
+
+Complete test suite:
+
+`68 passed, 1 warning`
+
+Lifecycle integration tests:
+
+`15 passed`
+
+All tests run using deterministic mock data without requiring a physical microphone.
+
+## 5. Demo Verification
+
+The Week 2 demo successfully demonstrated:
+
+- Mock microphone discovery and selection.
+- Permission granted.
+- Generation of 10 mock audio chunks.
+- Bounded buffer capacity of 3 chunks.
+- 7 incoming chunks dropped when the buffer was full.
+- Successful speech detection.
+- Pause, resume, and stop operations.
+- Buffer cleared after stopping.
+
+## 6. Acceptance Criteria
+
+- Device selection and permission handling implemented.
+- Unsupported devices and denied permissions handled safely.
+- Invalid lifecycle transitions rejected.
+- Configurable VAD threshold and minimum speech duration implemented.
+- Bounded buffer with overflow handling and dropped-chunk counters implemented.
+- Tests cover sequence gaps, late chunks, noise, and lifecycle integration.
+- Existing Week 1 schemas reused without duplicate definitions.
+- Mock-mode demo runs without real microphone access.
+
+## 7. Submission Status
+
+Week 2 implementation and local verification completed.
+
+**Engineer:** Yashitha N
+**Team:** SDE 5
