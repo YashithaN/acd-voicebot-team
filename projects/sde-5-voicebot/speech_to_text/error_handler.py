@@ -1,5 +1,5 @@
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 
 class SpeechToTextError(Exception):
@@ -12,7 +12,7 @@ class SpeechToTextError(Exception):
 
 def normalize_error(error):
 
-    if isinstance(error, TimeoutError):
+    if isinstance(error, FuturesTimeoutError):
         return SpeechToTextError(
             "Speech recognition timed out",
             "TIMEOUT",
@@ -21,13 +21,13 @@ def normalize_error(error):
 
     if isinstance(error, ValueError):
         return SpeechToTextError(
-            str(error),
+            "The audio input is invalid",
             "INVALID_INPUT",
             False
         )
 
     return SpeechToTextError(
-        str(error),
+        "Speech recognition provider failed",
         "PROVIDER_ERROR",
         True
     )

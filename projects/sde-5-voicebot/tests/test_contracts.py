@@ -50,7 +50,6 @@ def test_provider_returns_valid_transcript_event():
         assert isinstance(event.segment.is_final, bool)
 
 
-# Helper function for creating valid transcript segments
 def create_valid_segment(**overrides):
     data = {
         "segment_id": "segment-001",
@@ -68,7 +67,6 @@ def create_valid_segment(**overrides):
     return data
 
 
-# Test empty IDs
 @pytest.mark.parametrize(
     "field",
     ["segment_id", "chunk_id"]
@@ -86,11 +84,12 @@ def test_empty_event_id_is_rejected():
             event_id="",
             event_type="error",
             timestamp_ms=100,
-            error="Test error"
+            error_code="TEST_ERROR",
+            message="Test error",
+            retryable=False
         )
 
 
-# Test negative timestamps
 @pytest.mark.parametrize(
     "field",
     ["start_ms", "end_ms"]
@@ -124,11 +123,12 @@ def test_negative_event_timestamp_is_rejected():
             event_id="event-001",
             event_type="error",
             timestamp_ms=-1,
-            error="Test error"
+            error_code="TEST_ERROR",
+            message="Test error",
+            retryable=False
         )
 
 
-# Test confidence boundaries
 @pytest.mark.parametrize(
     "confidence",
     [-0.1, 1.1]
@@ -143,7 +143,6 @@ def test_invalid_confidence_is_rejected(confidence):
         TranscriptSegment(**data)
 
 
-# Test is_final type
 @pytest.mark.parametrize(
     "is_final",
     ["True", 1, None]
@@ -158,7 +157,6 @@ def test_non_boolean_is_final_is_rejected(is_final):
         TranscriptSegment(**data)
 
 
-# Determinism test
 def test_fake_transcriber_is_deterministic():
     provider = FakeTranscriber()
 
@@ -174,3 +172,36 @@ def test_fake_transcriber_is_deterministic():
     second_result = provider.transcribe(audio_chunk)
 
     assert first_result == second_result
+
+
+def test_error_event_requires_normalized_fields():
+    with pytest.raises(ValueError):
+        TranscriptEvent(
+            event_id="error-001",
+            event_type="error",
+            timestamp_ms=100
+        )
+
+
+def test_error_event_contains_normalized_fields():
+    event = TranscriptEvent(
+        event_id="error-002",
+        event_type="error",
+        timestamp_ms=100,
+        error_code="TIMEOUT",
+        message="Speech recognition timed out",
+        retryable=True
+    )
+
+    assert event.error_code == "TIMEOUT"
+    assert event.message == "Speech recognition timed out"
+    assert event.retryable is True
+
+
+def test_transcript_event_requires_segment_only():
+    with pytest.raises(ValueError):
+        TranscriptEvent(
+            event_id="event-002",
+            event_type="transcript",
+            timestamp_ms=100
+        )

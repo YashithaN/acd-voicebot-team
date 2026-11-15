@@ -7,12 +7,6 @@ import time
 class TranscriptSegment:
     """
     Represents one transcript segment.
-
-    start_ms: Start timestamp in milliseconds.
-    end_ms: End timestamp in milliseconds.
-    confidence: Value between 0 and 1.
-    is_final: True if final transcript, False if interim.
-    language: Language code such as en or en-IN.
     """
 
     segment_id: str
@@ -58,14 +52,18 @@ class TranscriptSegment:
 @dataclass
 class TranscriptEvent:
     """
-    Represents a transcript or error event.
+    Represents a transcript or normalized error event.
     """
 
     event_id: str
     event_type: str
     timestamp_ms: int
     segment: Optional[TranscriptSegment] = None
-    error: Optional[str] = None
+
+    # Normalized error fields
+    error_code: Optional[str] = None
+    message: Optional[str] = None
+    retryable: Optional[bool] = None
 
     def __post_init__(self):
 
@@ -79,15 +77,28 @@ class TranscriptEvent:
             raise ValueError("Invalid event timestamp")
 
         if self.event_type == "transcript":
-            if self.segment is None or self.error is not None:
+
+            if (
+                self.segment is None
+                or self.error_code is not None
+                or self.message is not None
+                or self.retryable is not None
+            ):
                 raise ValueError(
                     "Transcript event must contain a segment only"
                 )
 
         if self.event_type == "error":
-            if not self.error or self.segment is not None:
+
+            if (
+                self.segment is not None
+                or not self.error_code
+                or not self.message
+                or not isinstance(self.retryable, bool)
+            ):
                 raise ValueError(
-                    "Error event must contain an error message only"
+                    "Error event must contain error_code, "
+                    "message and retryable only"
                 )
 
 
