@@ -1,3 +1,5 @@
+import pytest
+
 from speech_to_text.adapter import SpeechToTextAdapter
 from speech_to_text.fake_transcriber import FakeTranscriber
 from speech_to_text.schemas import TranscriptEvent, TranscriptSegment
@@ -46,3 +48,129 @@ def test_provider_returns_valid_transcript_event():
         assert isinstance(event.segment.text, str)
         assert 0 <= event.segment.confidence <= 1
         assert isinstance(event.segment.is_final, bool)
+
+
+# Helper function for creating valid transcript segments
+def create_valid_segment(**overrides):
+    data = {
+        "segment_id": "segment-001",
+        "chunk_id": "chunk-001",
+        "sequence_number": 0,
+        "start_ms": 100,
+        "end_ms": 500,
+        "text": "Hello world",
+        "confidence": 0.95,
+        "is_final": True,
+        "language": "en-IN"
+    }
+
+    data.update(overrides)
+    return data
+
+
+# Test empty IDs
+@pytest.mark.parametrize(
+    "field",
+    ["segment_id", "chunk_id"]
+)
+def test_empty_segment_ids_are_rejected(field):
+    data = create_valid_segment(**{field: ""})
+
+    with pytest.raises(ValueError, match="cannot be empty"):
+        TranscriptSegment(**data)
+
+
+def test_empty_event_id_is_rejected():
+    with pytest.raises(ValueError, match="Event ID cannot be empty"):
+        TranscriptEvent(
+            event_id="",
+            event_type="error",
+            timestamp_ms=100,
+            error="Test error"
+        )
+
+
+# Test negative timestamps
+@pytest.mark.parametrize(
+    "field",
+    ["start_ms", "end_ms"]
+)
+def test_negative_segment_timestamps_are_rejected(field):
+    data = create_valid_segment(**{field: -1})
+
+    with pytest.raises(ValueError):
+        TranscriptSegment(**data)
+
+
+def test_end_timestamp_before_start_is_rejected():
+    data = create_valid_segment(
+        start_ms=500,
+        end_ms=200
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="End timestamp cannot be before start"
+    ):
+        TranscriptSegment(**data)
+
+
+def test_negative_event_timestamp_is_rejected():
+    with pytest.raises(
+        ValueError,
+        match="Invalid event timestamp"
+    ):
+        TranscriptEvent(
+            event_id="event-001",
+            event_type="error",
+            timestamp_ms=-1,
+            error="Test error"
+        )
+
+
+# Test confidence boundaries
+@pytest.mark.parametrize(
+    "confidence",
+    [-0.1, 1.1]
+)
+def test_invalid_confidence_is_rejected(confidence):
+    data = create_valid_segment(confidence=confidence)
+
+    with pytest.raises(
+        ValueError,
+        match="Confidence must be between 0 and 1"
+    ):
+        TranscriptSegment(**data)
+
+
+# Test is_final type
+@pytest.mark.parametrize(
+    "is_final",
+    ["True", 1, None]
+)
+def test_non_boolean_is_final_is_rejected(is_final):
+    data = create_valid_segment(is_final=is_final)
+
+    with pytest.raises(
+        ValueError,
+        match="is_final must be True or False"
+    ):
+        TranscriptSegment(**data)
+
+
+# Determinism test
+def test_fake_transcriber_is_deterministic():
+    provider = FakeTranscriber()
+
+    audio_chunk = {
+        "chunk_id": "deterministic-001",
+        "sequence_number": 1,
+        "start_ms": 0,
+        "end_ms": 2000,
+        "audio_data": b"same synthetic audio input"
+    }
+
+    first_result = provider.transcribe(audio_chunk)
+    second_result = provider.transcribe(audio_chunk)
+
+    assert first_result == second_result
