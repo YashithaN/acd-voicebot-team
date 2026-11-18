@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
+
 import pytest
 
-from context_reasoning.schemas import ReasoningRequest
+from context_reasoning.schemas import ReasoningRequest, use_clock
 from context_reasoning.synthetic_frames import create_sample_context
 from context_reasoning.mock_reasoning import run_mock_reasoning
 
@@ -23,14 +25,15 @@ def test_mock_reasoning_returns_result():
 
 
 def test_mock_reasoning_is_deterministic():
-    request = make_request()
+    fixed_timestamp = datetime(2025, 1, 1, tzinfo=timezone.utc)
 
-    first = run_mock_reasoning(request)
-    second = run_mock_reasoning(request)
+    with use_clock(lambda: fixed_timestamp):
+        request = make_request()
+        first = run_mock_reasoning(request)
+        second = run_mock_reasoning(request)
 
-    assert first.answer == second.answer
-    assert first.grounded_item_ids == second.grounded_item_ids
-    assert first.confidence == second.confidence
+    assert first == second
+    assert first.created_at == fixed_timestamp
 
 
 def test_mock_reasoning_grounds_answer_in_context():

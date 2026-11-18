@@ -6,8 +6,10 @@ All screen context in this module is synthetic.
 Real screen capture is disabled by default.
 """
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Callable, Generator, Literal
 
 from pydantic import (
     BaseModel,
@@ -16,6 +18,37 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+
+Clock = Callable[[], datetime]
+
+
+def _system_clock() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+_timestamp_clock: ContextVar[Clock] = ContextVar(
+    "timestamp_clock",
+    default=_system_clock,
+)
+
+
+def _utc_now() -> datetime:
+    timestamp = _timestamp_clock.get()()
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        raise ValueError("The timestamp clock must return a timezone-aware datetime.")
+
+    return timestamp.astimezone(timezone.utc)
+
+
+@contextmanager
+def use_clock(clock: Clock) -> Generator[None, None, None]:
+    """Temporarily inject a clock for timestamps created in the current context."""
+    token = _timestamp_clock.set(clock)
+    try:
+        yield
+    finally:
+        _timestamp_clock.reset(token)
 
 
 class SchemaBase(BaseModel):
@@ -95,7 +128,7 @@ class ContextItem(SchemaBase):
     )
 
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=_utc_now,
         description="UTC timestamp of item creation.",
     )
 
@@ -141,7 +174,7 @@ class ScreenContext(SchemaBase):
     )
 
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=_utc_now,
         description="UTC timestamp when context was created.",
     )
 
@@ -227,7 +260,7 @@ class ReasoningResult(SchemaBase):
     )
 
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=_utc_now,
         description="UTC timestamp when the result was created.",
     )
 

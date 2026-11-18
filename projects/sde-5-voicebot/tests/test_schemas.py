@@ -1,6 +1,8 @@
 
 """Tests for the W3 context and reasoning schemas."""
 
+from datetime import datetime, timezone
+
 import pytest
 from pydantic import ValidationError
 
@@ -10,6 +12,7 @@ from context_reasoning.schemas import (
     ScreenContext,
     ReasoningRequest,
     ReasoningResult,
+    use_clock,
 )
 
 
@@ -84,6 +87,33 @@ def test_reasoning_result():
 
     assert result.mode == "mock"
     assert result.grounded_item_ids == ["item-001"]
+
+
+def test_timestamp_defaults_use_injected_timezone_aware_clock():
+    fixed_timestamp = datetime(2025, 1, 1, tzinfo=timezone.utc)
+
+    with use_clock(lambda: fixed_timestamp):
+        context = create_valid_context()
+        result = ReasoningResult(
+            request_id="request-001",
+            answer="The button says Submit.",
+            grounded_item_ids=["item-001"],
+            confidence=0.95,
+        )
+
+    assert context.items[0].created_at == fixed_timestamp
+    assert context.created_at == fixed_timestamp
+    assert result.created_at == fixed_timestamp
+
+
+def test_timestamp_clock_rejects_naive_datetime():
+    with use_clock(lambda: datetime(2025, 1, 1)):
+        with pytest.raises(ValueError, match="timezone-aware"):
+            ReasoningResult(
+                request_id="request-001",
+                answer="The button says Submit.",
+                confidence=0.95,
+            )
 
 
 def test_invalid_confidence_rejected():
