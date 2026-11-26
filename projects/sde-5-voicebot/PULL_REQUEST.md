@@ -225,3 +225,123 @@ Week 2 implementation and local verification completed.
 
 **Engineer:** Yashitha N
 **Team:** SDE 5
+
+
+---
+
+# Week 3 — Speech Events, Device-Loss Recovery & Transcription Integration
+
+**Team:** SDE 5  
+**Engineer:** Yashitha N  
+**Workstream:** W1 – Audio and VAD  
+**Duration:** Week 3 (Day 15–Day 21)  
+**Branch:** `feature/yashitha-w3-speech-integration`
+
+## 1. Objective
+
+Extend the existing Week 1 and Week 2 audio pipeline by implementing structured speech events, session and correlation ID propagation, device-loss recovery, cancellation, and a mock transcription handoff.
+
+The implementation reuses the existing audio schemas, device adapter, VAD and lifecycle components without introducing duplicate shared audio definitions.
+
+## 2. Implementation
+
+- Implemented structured speech events for speech start, speech end and audio chunks.
+- Added session ID and correlation ID to generated events.
+- Added event timestamp and sequence ID validation.
+- Implemented an audio event pipeline using the existing VAD interface.
+- Added speech-start and speech-end detection.
+- Implemented audio chunk event generation and ordering validation.
+- Added handling for silence and short noise without false speech activation.
+- Implemented mock device-loss detection and reconnection attempts.
+- Added configurable recovery retry limits.
+- Implemented cancellation to stop active or paused audio lifecycle and clear buffered audio.
+- Added a mock transcription receiver for audio event handoff.
+- Created a Week 3 demonstration using deterministic mock audio data.
+
+## 3. Files Added
+
+**Audio modules:**
+- `audio/events.py`
+- `audio/pipeline.py`
+- `audio/recovery.py`
+
+**Tests:**
+- `tests/test_events.py`
+- `tests/test_pipeline.py`
+- `tests/test_recovery.py`
+
+**Demo:**
+- `week3_demo.py`
+
+**Documentation:**
+- Updated `README.md`
+- Updated `PULL_REQUEST.md`
+
+## 4. Test Results
+
+Complete project test suite:
+
+`100 passed, 1 warning`
+
+Week 3 test coverage:
+
+- Speech events: 9 tests
+- Audio event pipeline: 11 tests
+- Device recovery: 12 tests
+
+The tests cover event validation, ordering, session and correlation IDs, silence, false triggers, sequence gaps, device disconnection, reconnection, retry limits and cancellation.
+
+The warning originates from the installed AnyIO pytest plugin and does not indicate a test failure.
+
+## 5. Demo Verification
+
+Command:
+
+```bash
+python week3_demo.py
+```
+
+Observed results:
+
+- Mock audio processing completed successfully.
+- Speech-start event generated.
+- Audio chunk events generated in sequence.
+- Session ID: `demo-session-001`
+- Correlation ID: `demo-correlation-001`
+- Four audio chunks received by the mock transcription receiver.
+- Speech-end event generated.
+- Total events generated: 6.
+- Demo completed successfully.
+
+No physical microphone or external transcription API was required.
+
+## 6. Acceptance Criteria
+
+- [x] Speech-start and speech-end events implemented.
+- [x] Session ID and correlation ID included in events.
+- [x] Audio chunk events generated with sequence information.
+- [x] Event ordering validated.
+- [x] Silence and false-trigger scenarios tested.
+- [x] Sequence gaps and out-of-order chunks tested.
+- [x] Device-loss detection implemented.
+- [x] Reconnection and retry handling implemented.
+- [x] Cancellation stops active or paused lifecycle and clears the buffer.
+- [x] Mock transcription handoff demonstrated.
+- [x] Existing audio schemas reused.
+- [x] Tests executed without real microphone recordings.
+
+## 7. Integration Notes
+
+The transcription handoff is currently demonstrated using a local mock receiver. Integration with the team's actual transcription adapter remains a separate integration step.
+
+Device recovery is tested using the existing mock device interface. No physical microphone reconnection is claimed.
+
+## 8. Submission Status
+
+Week 3 implementation, mock demonstration and local test verification completed.
+
+**Latest verification:** 100 tests passed, 1 warning.
+
+**Engineer:** Yashitha N  
+**Team:** SDE 5  
+**Project:** Academia AI Voice Bot
