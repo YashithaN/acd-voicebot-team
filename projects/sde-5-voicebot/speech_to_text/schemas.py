@@ -18,6 +18,7 @@ class TranscriptSegment:
     confidence: float
     is_final: bool
     language: str = "en-IN"
+    session_id: str = "default"
 
     def __post_init__(self):
 
@@ -48,11 +49,15 @@ class TranscriptSegment:
         if not self.language:
             raise ValueError("Language cannot be empty")
 
+        if not isinstance(self.session_id, str) or not self.session_id.strip():
+            raise ValueError("Session ID cannot be empty")
+
 
 @dataclass
 class TranscriptEvent:
     """
-    Represents a transcript or normalized error event.
+    Represents a transcript, revision, finalization
+    or normalized error event.
     """
 
     event_id: str
@@ -65,18 +70,30 @@ class TranscriptEvent:
     message: Optional[str] = None
     retryable: Optional[bool] = None
 
+    # Session association
+    session_id: str = "default"
+
     def __post_init__(self):
 
         if not self.event_id:
             raise ValueError("Event ID cannot be empty")
 
-        if self.event_type not in ("transcript", "error"):
+        if self.event_type not in (
+            "transcript",
+            "revision",
+            "finalized",
+            "error"
+        ):
             raise ValueError("Invalid event type")
 
         if self.timestamp_ms < 0:
             raise ValueError("Invalid event timestamp")
 
-        if self.event_type == "transcript":
+        if not isinstance(self.session_id, str) or not self.session_id.strip():
+            raise ValueError("Session ID cannot be empty")
+
+        # Transcript, revision and finalization events
+        if self.event_type in ("transcript", "revision", "finalized"):
 
             if (
                 self.segment is None
@@ -88,6 +105,22 @@ class TranscriptEvent:
                     "Transcript event must contain a segment only"
                 )
 
+            if self.segment.session_id != self.session_id:
+                raise ValueError(
+                    "Transcript and event session IDs must match"
+                )
+
+            if self.event_type == "revision" and self.segment.is_final:
+                raise ValueError(
+                    "Revision event must contain an interim segment"
+                )
+
+            if self.event_type == "finalized" and not self.segment.is_final:
+                raise ValueError(
+                    "Finalized event must contain a final segment"
+                )
+
+        # Normalized error events
         if self.event_type == "error":
 
             if (
